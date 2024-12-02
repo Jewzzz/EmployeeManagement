@@ -1,0 +1,240 @@
+﻿@model IEnumerable<EmployeeManagement.Models.Employee>
+@* @model EmployeeManagement.Models.Employee *@
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<div class="container mt-5">
+    <div class="d-flex justify-content-between">
+        <h3>Employee Management</h3>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createModal">
+            <i class="fa-solid fa-plus"></i>
+            Add Employee
+            </button>
+    </div>
+
+    <!-- Search Bar -->
+       <div class="row mt-3">
+            <div class="col-sm-6"></div>
+            <div class="col-sm-6">
+                <input type="text" class="form-control" id="searchQuery" placeholder="Search by name or email" />
+                <button class="btn btn-info mt-1" id="searchButton">Search</button>
+            </div>    
+    </div>
+    
+    <table class="table">
+        <thead class="thead-dark">
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Address</th>
+                <th>Phone</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="employeeList">
+            @foreach (var emp in Model)
+            {
+                <tr>
+                    <td>@emp.Name</td>
+                    <td>@emp.Email</td>
+                    <td>@emp.Address</td>
+                    <td>@emp.Phone</td>
+                    <td>                   
+                        @if (emp.IsActive)
+                        {
+                            <span class="badge rounded-pill bg-success">Active</span>
+                        }
+                        else
+                        {
+                            <span class="badge rounded-pill bg-warning text-dark">In-Active</span>
+                        }
+                    </td>
+
+                    <td>
+                        @* <button class="btn btn-warning edit-btn" data-id="@emp.Id">Edit</button> *@
+                        <button class="btn btn-danger delete-btn" data-id="@emp.Id">
+                            <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        <button class="btn btn-info view-btn" data-id="@emp.Id">
+                            <i class="fa-regular fa-eye"></i>
+                         </button>
+
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<!-- Create Employee Modal -->
+<div class="modal fade" id="createModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Employee</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createForm">
+                    <div class="mb-3">
+                        <label>Name</label>
+                        <input type="text" class="form-control" name="Name" required autofocus/>
+                    </div>
+                    <div class="mb-3">
+                        <label>Address</label>
+                        <input type="text" class="form-control" name="Address" required />
+                    </div>
+                    <div class="mb-3">
+                        <label>Email</label>
+                        <input type="email" class="form-control" name="Email" required />
+                    </div>
+                    <div class="mb-3">
+                        <label>Phone</label>
+                        <input type="text" class="form-control" name="Phone" required />
+                    </div>
+                    <div class="mb-3">
+                        <label>Is Active User</label>
+                        <select class="form-control" name="IsActive">
+                            <option value="true">Active</option>
+                            <option value="false">In-Active</option>
+                        </select>
+                    </div>
+                    <button type="reset" class="btn btn-warning">Reset</button>
+                    <button type="submit" class="btn btn-success">Save</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- View Employee Modal -->
+<div class="modal fade" id="employeeModal" tabindex="-1" aria-labelledby="employeeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="employeeModalLabel">Employee Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>Id:</strong> <span id="employeeId"></span></p>
+                <p><strong>Name:</strong> <span id="employeeName"></span></p>
+                <p><strong>Email:</strong> <span id="employeeEmail"></span></p>
+                <p><strong>Address:</strong> <span id="employeeAddress"></span></p>
+                <p><strong>Phone:</strong> <span id="employeePhone"></span></p>
+                <p><strong>Status:</strong> 
+                    <span id="employeeStatus"></span>
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    
+
+    $(document).ready(function () {
+
+        //  Create Employee Function
+        $("#createForm").submit(function (e) {
+            e.preventDefault();
+            $.ajax({
+                url: '/Employee/Create',
+                type: 'POST',
+                data: $(this).serialize(),
+                success: function (response) {
+                    if (response.success) {
+                        location.reload();
+                    } else {
+                        alert("Error occurred");
+                    }
+                }
+            });
+        });
+
+
+        // Delete Employee Function
+        $(".delete-btn").click(function () {
+            var id = $(this).data("id");
+            console.log('Id Value is: ', id);
+
+            // Use Swal for the confirmation box
+            Swal.fire({
+                title: "Are you sure?",
+                text: "You won't be able to revert this!",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#d33",
+                cancelButtonColor: "#3085d6",
+                confirmButtonText: "Yes, delete it!",
+                cancelButtonText: "Cancel"
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Make the delete request
+                    $.post("/Employee/Delete", { id: id }, function (response) {
+                        if (response.success) {
+                            location.reload(); // Refresh the table
+                            Swal.fire(
+                                "Deleted!",
+                                "The employee record has been deleted.",
+                                "success"
+                            );
+                            // Update the employee list dynamically
+                            $('#employeeList').html(response.data);
+                        } else {
+                            Swal.fire(
+                                "Error!",
+                                "An error occurred while deleting the record.",
+                                "error"
+                            );
+                        }
+                    });
+                }
+            });
+        });
+
+        $(".view-btn").click(function () {
+            var id = $(this).data("id");
+            $.get(`/Employee/GetEmployeeById/${id}`, function (response) {
+                // console.log('response:- ', response);
+                if (response.success) {
+                    // Populate modal fields with employee data
+                    $("#employeeId").text(response.data.id);
+                    $("#employeeName").text(response.data.name);
+                    $("#employeeEmail").text(response.data.email);
+                    $("#employeeAddress").text(response.data.address);
+                    $("#employeePhone").text(response.data.phone);
+                    $("#employeeStatus").text(response.data.isActive);
+
+                    // Show the employee modal
+                    $("#employeeModal").modal("show");
+                }
+
+                else {
+                    console.error("Failed to fetch employee data:");
+                }
+
+            })
+        });
+
+        // Search Employee Function
+        $('#searchButton').click(function () {
+            const query = $('#searchQuery').val();
+            console.log('searchQueryVal:-  ', query);
+            $.ajax({
+                url: '@Url.Action("Index", "Employee")', 
+                type: 'GET',
+                data: { query: query }, // Pass the query as a parameter
+                success: function (data) {
+                    $('#employeeList').html(data); // Replace content with the response
+                },
+            });
+        });
+    });
+
+</script>
+
